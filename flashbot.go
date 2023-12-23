@@ -40,7 +40,8 @@ type SimTx struct {
 }
 
 type Inclusion struct {
-	Block string `json:"block"`
+	Block    string `json:"block"`
+	MaxBlock string `json:"maxBlock"`
 }
 
 type SimulateBundleParams struct {
@@ -354,7 +355,8 @@ func (self *Flashbot) SimulateBundle(
 
 	params := SimulateBundleParams{
 		Inc: Inclusion{
-			Block: hexutil.EncodeUint64(blockNum),
+			Block:    hexutil.EncodeUint64(blockNum),
+			MaxBlock: hexutil.EncodeUint64(blockNum + 10),
 		},
 		Body:    txs,
 		Version: version,
