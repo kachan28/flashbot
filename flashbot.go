@@ -30,7 +30,23 @@ type Flashboter interface {
 	CallBundle(ctx context.Context, txsHex []string, blockNumState uint64) (*Response, error)
 	GetBundleStats(ctx context.Context, bundleHash string, blockNum uint64) (*ResultBundleStats, error)
 	GetUserStats(ctx context.Context, blockNum uint64) (*ResultUserStats, error)
+	SimulateBundle(ctx context.Context, txsHex []string, blockNum uint64) (*SimBundleResult, error)
 	Api() *Api
+}
+
+type SimTx struct {
+	Tx        string `json:"tx"`
+	CanRevert bool   `json:"canRevert"`
+}
+
+type Inclusion struct {
+	Block string `json:"block"`
+}
+
+type SimulateBundleParams struct {
+	Inc     Inclusion `json:"inclusion"`
+	Body    []SimTx   `json:"body"`
+	Version string    `json:"version"`
 }
 
 type ParamsCall struct {
@@ -98,6 +114,16 @@ type BundleUserStats struct {
 type ResultBundleStats struct {
 	Error
 	Result BundleStats
+}
+
+type SimBundleResult struct {
+	Error           `json:"error,omitempty"`
+	Success         bool
+	StateBlock      string
+	MevGasPrice     string
+	Profit          string
+	RefundableValue string
+	GasUsed         string
 }
 
 type BundleStats struct {
@@ -306,6 +332,47 @@ func (self *Flashbot) SendBundle(
 	return rr, nil
 }
 
+func (self *Flashbot) SimulateBundle(
+	ctx context.Context,
+	txsHex []string,
+	blockNum uint64,
+) (*SimBundleResult, error) {
+	const (
+		methodSim = "mev_sendBundle"
+		version   = "v0.1"
+	)
+
+	txs := make([]SimTx, 0)
+	for _, txHex := range txsHex {
+		txs = append(txs, SimTx{
+			Tx:        txHex,
+			CanRevert: false,
+		})
+	}
+
+	fmt.Println(hexutil.EncodeUint64(blockNum))
+
+	params := SimulateBundleParams{
+		Inc: Inclusion{
+			Block: hexutil.EncodeUint64(blockNum),
+		},
+		Body:    txs,
+		Version: version,
+	}
+
+	resp, err := self.req(ctx, methodSim, params)
+	if err != nil {
+		return nil, errors.Wrap(err, "flashbot send simulate bundle request")
+	}
+
+	rr, err := parseMevResp(resp, blockNum)
+	if err != nil {
+		return nil, err
+	}
+
+	return rr, nil
+}
+
 func (self *Flashbot) CallBundle(
 	ctx context.Context,
 	txsHex []string,
@@ -400,6 +467,22 @@ func (self *Flashbot) GetUserStats(
 
 	return rr, nil
 
+}
+
+func parseMevResp(resp []byte, blockNum uint64) (*SimBundleResult, error) {
+	rr := &SimBundleResult{}
+
+	err := json.Unmarshal(resp, rr)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unmarshal flashbot response:%v", string(resp))
+	}
+
+	if rr.Error.Code != 0 {
+		errStr := fmt.Sprintf("flashbot request returned an error:%+v,%v block:%v", rr.Error, rr.Message, blockNum)
+		return nil, errors.New(errStr)
+	}
+
+	return rr, nil
 }
 
 func parseResp(resp []byte, blockNum uint64) (*Response, error) {
