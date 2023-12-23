@@ -1,4 +1,4 @@
-module github.com/cryptoriums/flashbot
+module github.com/kachan28/flashbot
 
 go 1.18
 
