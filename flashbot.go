@@ -118,13 +118,16 @@ type ResultBundleStats struct {
 }
 
 type SimBundleResult struct {
-	Error           `json:"error,omitempty"`
-	Success         bool
-	StateBlock      string
-	MevGasPrice     string
-	Profit          string
-	RefundableValue string
-	GasUsed         string
+	Result struct {
+		Error           string `json:"error,omitempty"`
+		Success         bool   `json:"success"`
+		StateBlock      string `json:"stateBlock"`
+		MevGasPrice     string `json:"mevGasPrice"`
+		Profit          string `json:"profit"`
+		RefundableValue string `json:"refundableValue"`
+		GasUsed         string `json:"gasUsed"`
+		Logs            []any  `json:"logs"`
+	} `json:"result"`
 }
 
 type BundleStats struct {
@@ -339,7 +342,7 @@ func (self *Flashbot) SimulateBundle(
 	blockNum uint64,
 ) (*SimBundleResult, error) {
 	const (
-		methodSim = "mev_sendBundle"
+		methodSim = "mev_simBundle"
 		version   = "v0.1"
 	)
 
@@ -479,8 +482,8 @@ func parseMevResp(resp []byte, blockNum uint64) (*SimBundleResult, error) {
 		return nil, errors.Wrapf(err, "unmarshal flashbot response:%v", string(resp))
 	}
 
-	if rr.Error.Code != 0 {
-		errStr := fmt.Sprintf("flashbot request returned an error:%+v,%v block:%v", rr.Error, rr.Message, blockNum)
+	if rr.Result.Error != "" {
+		errStr := fmt.Sprintf("flashbot request returned an error:%+v,%v block:%v", rr.Result.Error, rr.Result.Error, blockNum)
 		return nil, errors.New(errStr)
 	}
 

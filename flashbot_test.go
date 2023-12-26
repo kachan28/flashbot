@@ -94,7 +94,7 @@ func TestSimBundle(t *testing.T) {
 	blockNumber, err := client.BlockNumber(ctx)
 	testutil.Ok(t, err)
 
-	level.Info(logger).Log("msg", "created send transaction", "hash", tx.Hash())
+	level.Info(logger).Log("msg", "created sim transaction", "hash", tx.Hash())
 
 	var resp *SimBundleResult
 
