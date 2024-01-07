@@ -128,6 +128,7 @@ type SimBundleResult struct {
 		GasUsed         string `json:"gasUsed"`
 		Logs            []any  `json:"logs"`
 	} `json:"result"`
+	Error `json:"error,omitempty"`
 }
 
 type BundleStats struct {
@@ -484,6 +485,11 @@ func parseMevResp(resp []byte, blockNum uint64) (*SimBundleResult, error) {
 
 	if rr.Result.Error != "" {
 		errStr := fmt.Sprintf("flashbot request returned an error:%+v,%v block:%v", rr.Result.Error, rr.Result.Error, blockNum)
+		return nil, errors.New(errStr)
+	}
+
+	if rr.Error.Code != 0 {
+		errStr := fmt.Sprintf("flashbot request returned an error:%d,%s block:%v", rr.Error.Code, rr.Error.Message, blockNum)
 		return nil, errors.New(errStr)
 	}
 
